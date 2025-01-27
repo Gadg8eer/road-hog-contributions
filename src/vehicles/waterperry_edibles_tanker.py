@@ -1,15 +1,19 @@
-from road_vehicle import EdiblesTanker, DieselRoadVehicle
+from road_vehicle import EdiblesTankerTruckConsist
+from base_platforms.trucks import DieselCaboverRigidTruckGen4A
 
-consist = EdiblesTanker(id='waterperry_edibles_tanker',
-                        base_numeric_id=470,
-                        name='Waterperry',
-                        vehicle_life=40,
-                        intro_date=1972)
 
-consist.add_unit(type=DieselRoadVehicle,
-                 capacity=20,
-                 vehicle_length=5,
-                 effects=['EFFECT_SPRITE_DIESEL, -2, 1, 10'])
+def main(roster_id):
+    consist = EdiblesTankerTruckConsist(
+        roster_id=roster_id,
+        id="waterperry_edibles_tanker",
+        base_numeric_id=470,
+        name="Waterperry",
+        gen=4,
+        intro_date_offset=4,
+    )  # introduce later than gen epoch by design
 
-consist.add_unit(capacity=20,
-                 vehicle_length=4)
+    consist.add_unit(base_platform=DieselCaboverRigidTruckGen4A)
+
+    consist.add_unit(base_platform=None, vehicle_length=4)
+
+    return consist

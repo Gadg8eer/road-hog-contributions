@@ -1,18 +1,28 @@
-from road_vehicle import DumpHauler, ElectricRoadVehicle
+from road_vehicle import DumpTramConsist, ElectricVehicleUnit
 
-consist = DumpHauler(id='nettlebridge_dump',
-                     base_numeric_id=310,
-                     name='Nettlebridge',
-                     tram_type='ELRL',
-                     vehicle_life=40,
-                     intro_date=1944)
 
-consist.add_unit(type=ElectricRoadVehicle,
-                 capacity=0,
-                 vehicle_length=4,
-                 effects=['EFFECT_SPRITE_ELECTRIC, 0, 0, 10'],
-                 always_use_same_spriterow=True)
+def main(roster_id):
+    consist = DumpTramConsist(
+        roster_id=roster_id,
+        id="nettlebridge_dump",
+        base_numeric_id=310,
+        name="Nettlebridge",
+        gen=3,
+        intro_date_offset=4,
+    )  # introduce later than gen epoch by design
 
-consist.add_unit(capacity=36,
-                 vehicle_length=6,
-                 repeat=2)
+    consist.add_unit(
+        base_platform=None,  # no base platform by design currently
+        type=ElectricVehicleUnit,
+        capacity=0,
+        vehicle_length=4,
+        always_use_same_spriterow=True,
+    )
+
+    consist.add_unit(
+        base_platform=None,  # no base platform by design currently
+        vehicle_length=6,
+        repeat=2,
+    )
+
+    return consist

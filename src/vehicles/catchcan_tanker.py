@@ -1,14 +1,17 @@
-from road_vehicle import Tanker, ElectricRoadVehicle
+from road_vehicle import TankerTramConsist
+from base_platforms.trams import ElectricMotorTram3
 
-consist = Tanker(id='catchcan_tanker',
-                 base_numeric_id=810,
-                 name='Catchcan',
-                 tram_type='ELRL',
-                 vehicle_life=40,
-                 intro_date=1902)
 
-consist.add_unit(type=ElectricRoadVehicle,
-                 capacity=30,
-                 vehicle_length=8,
-                 effects=['EFFECT_SPRITE_ELECTRIC, 0, 0, 10'],
-                 repeat=2)
+def main(roster_id):
+    consist = TankerTramConsist(
+        roster_id=roster_id,
+        id="catchcan_tanker",
+        base_numeric_id=810,
+        name="Catchcan",
+        gen=2,
+        intro_date_offset=2,
+    )  # introduce later than gen epoch by design
+
+    consist.add_unit(base_platform=ElectricMotorTram3, repeat=2)
+
+    return consist

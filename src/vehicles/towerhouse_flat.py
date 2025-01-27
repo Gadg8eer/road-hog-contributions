@@ -1,17 +1,20 @@
-from road_vehicle import FlatHauler, DieselRoadVehicle
+from road_vehicle import FlatbedTruckConsist
+from base_platforms.trucks import DieselConventionalCabSemiTractorTruckGen4A
 
-consist = FlatHauler(id='towerhouse_flat',
-                        base_numeric_id=650,
-                        name='Towerhouse',
-                        semi_truck_so_redistribute_capacity=True,
-                        vehicle_life=40,
-                        intro_date=1968)
 
-consist.add_unit(type=DieselRoadVehicle,
-                 vehicle_length=2,
-                 semi_truck_shift_offset_jank=2,
-                 always_use_same_spriterow=True)
+def main(roster_id):
+    consist = FlatbedTruckConsist(
+        roster_id=roster_id,
+        id="towerhouse_flat",
+        base_numeric_id=650,
+        name="Towerhouse",
+        gen=4,
+    )
 
-consist.add_unit(capacity=40,
-                 vehicle_length=7,
-                 cargo_length=4)  # some cargo overlap eh?
+    consist.add_unit(base_platform=DieselConventionalCabSemiTractorTruckGen4A)
+
+    consist.add_unit(
+        base_platform=None, vehicle_length=7, cargo_length=4
+    )  # some cargo overlap eh?
+
+    return consist

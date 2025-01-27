@@ -1,15 +1,22 @@
-from road_vehicle import MailHauler, ElectricRoadVehicle
+from road_vehicle import MailTramConsist, ElectricVehicleUnit
 
-consist = MailHauler(id='stagrun_mail',
-                     base_numeric_id=840,
-                     name='Stagrun',
-                     tram_type='ELRL',
-                     power=360,  # custom power
-                     vehicle_life=40,
-                     intro_date=1932)
 
-consist.add_unit(type=ElectricRoadVehicle,
-                 capacity=18,
-                 vehicle_length=4,
-                 effects=['EFFECT_SPRITE_ELECTRIC, 0, 0, 10'],
-                 repeat=2)
+def main(roster_id):
+    consist = MailTramConsist(
+        roster_id=roster_id,
+        id="stagrun_mail",
+        base_numeric_id=840,
+        name="Stagrun",
+        power=360,  # custom power
+        gen=3,
+        intro_date_offset=2,
+    )  # introduce later than gen epoch by design
+
+    consist.add_unit(
+        base_platform=None,  # mail trams have no base platform by design currently
+        type=ElectricVehicleUnit,
+        vehicle_length=4,
+        repeat=2,
+    )
+
+    return consist

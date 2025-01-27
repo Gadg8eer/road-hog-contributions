@@ -1,139 +1,98 @@
-print("[RENDER DOCS] render_docs.py")
-
-import codecs # used for writing files - more unicode friendly than standard open() module
+import codecs  # used for writing files - more unicode friendly than standard open() module
 
 import shutil
 import sys
 import os
-currentdir = os.curdir
-from time import time
 
+currentdir = os.curdir
+import multiprocessing
+from itertools import repeat
+from time import time
 from PIL import Image
+import markdown
 
 import road_hog
 import utils
 import global_constants
+from polar_fox import git_info
+from doc_helper import DocHelper
 
-# setting up a cache for compiled chameleon templates can significantly speed up template rendering
-chameleon_cache_path = os.path.join(currentdir, global_constants.chameleon_cache_dir)
-if not os.path.exists(chameleon_cache_path):
-    os.mkdir(chameleon_cache_path)
-os.environ['CHAMELEON_CACHE'] = chameleon_cache_path
-
-docs_src = os.path.join(currentdir, 'src', 'docs_templates')
-docs_output_path = os.path.join(currentdir, 'docs')
-if os.path.exists(docs_output_path):
-    shutil.rmtree(docs_output_path)
-os.mkdir(docs_output_path)
-
-shutil.copy(os.path.join(docs_src,'index.html'), docs_output_path)
-
-static_dir_src = os.path.join(docs_src, 'html', 'static')
-static_dir_dst = os.path.join(docs_output_path, 'html', 'static')
-shutil.copytree(static_dir_src, static_dir_dst)
-
-# we'll be processing some extra images and saving them into the img dir
-images_dir_dst = os.path.join(static_dir_dst, 'img')
-
-import markdown
-from chameleon import PageTemplateLoader # chameleon used in most template cases
-# setup the places we look for templates
-docs_templates = PageTemplateLoader(docs_src, format='text')
+metadata = {}
+metadata.update(global_constants.metadata)
 
 # get args passed by makefile
-makefile_args = utils.get_makefile_args(sys)
+command_line_args = utils.get_command_line_args()
 
-# get the strings from base lang file so they can be used in docs
-base_lang_strings = utils.parse_base_lang()
-metadata = {}
-metadata['dev_thread_url'] = 'http://www.tt-forums.net/viewtopic.php?f=26&t=70241'
-metadata['repo_url'] = 'http://dev.openttdcoop.org/projects/road-hog/repository'
-metadata['issue_tracker'] = 'http://dev.openttdcoop.org/projects/road-hog/issues'
-metadata['eints_url'] = 'https://translator.openttdcoop.org/project/road-hog'
+docs_src = os.path.join(currentdir, "src", "docs_templates")
 
-consists = road_hog.get_consists_in_buy_menu_order()
-# default sort for docs is by intro date
-consists = sorted(consists, key=lambda consist: consist.intro_date)
-dates = sorted([i.intro_date for i in consists])
-metadata['dates'] = (dates[0], dates[-1])
+palette = utils.dos_palette_to_rgb()
 
-class DocHelper(object):
-    # dirty class to help do some doc formatting
 
-    def get_vehicles_by_subclass(self):
-        vehicles_by_subclass = {}
-        for consist in consists:
-            subclass = type(consist)
-            if subclass in vehicles_by_subclass:
-                vehicles_by_subclass[subclass].append(consist)
-            else:
-                vehicles_by_subclass[subclass] = [consist]
-        return vehicles_by_subclass
+def render_docs(
+    doc_list,
+    file_type,
+    docs_output_path,
+    road_hog,
+    consists,
+    doc_helper,
+    use_markdown=False,
+    source_is_repo_root=False,
+):
+    roster = road_hog.roster_manager.active_roster
+    # expect Exception failures if there is no active roster, don't bother explicitly handling that case
 
-    def fetch_prop(self, result, prop_name, value):
-        result['vehicle'][prop_name] = value
-        result['subclass_props'].append(prop_name)
-        return result
+    if source_is_repo_root:
+        doc_path = os.path.join(currentdir)
+    else:
+        doc_path = docs_src
+    # imports inside functions are generally avoided
+    # but PageTemplateLoader is expensive to import and causes unnecessary overhead for Pool mapping when processing docs graphics
+    from chameleon import PageTemplateLoader
 
-    def get_props_to_print_in_code_reference(self, subclass):
-        props_to_print = {}
-        for vehicle in self.get_vehicles_by_subclass()[subclass]:
-            result = {'vehicle':{}, 'subclass_props': []}
-            result = self.fetch_prop(result, 'Vehicle Name', self.unpack_name_string(vehicle))
-            result = self.fetch_prop(result, 'HP', int(vehicle.power))
-            result = self.fetch_prop(result, 'Speed (mph)', vehicle.speed)
-            result = self.fetch_prop(result, 'Weight (t)', int(vehicle.weight)) # cast to int to get same result as game will show
-            result = self.fetch_prop(result, 'Intro Date', vehicle.intro_date)
-            result = self.fetch_prop(result, 'Vehicle Life', vehicle.vehicle_life)
-            result = self.fetch_prop(result, 'Capacity', vehicle.total_capacities[1])
-            result = self.fetch_prop(result, 'Buy Cost Factor', round(vehicle.buy_cost, 2))
-            result = self.fetch_prop(result, 'Running Cost Factor', round(vehicle.running_cost, 2))
-            #result = self.fetch_prop(result, 'Loading Speed', vehicle.loading_speed)
-            props_to_print[vehicle] = result['vehicle']
-            props_to_print[subclass] = result['subclass_props']
+    docs_templates = PageTemplateLoader(doc_path, format="text")
 
-        return props_to_print
-
-    def unpack_name_string(self, consist):
-        substrings = consist.name.split('string(')
-        name = consist._name
-        type_suffix = base_lang_strings[substrings[3][0:-3]]
-        power_suffix = base_lang_strings[substrings[4][0:-2]]
-        return name + ' ' + type_suffix + ' (' + power_suffix + ')'
-
-    def get_base_numeric_id(self, consist):
-        return consist.base_numeric_id
-
-    def get_active_nav(self, doc_name, nav_link):
-        return ('','active')[doc_name == nav_link]
-
-    def get_special_features_for_vehicle(self, consist):
-        result = []
-        if consist.loading_speed_multiplier > 1:
-            result.append('faster loading') # assumes we never do slower loading penalty
-        if consist.cargo_age_period > global_constants.CARGO_AGE_PERIOD:
-            result.append('improved payment') # assumes we never do higher cargo decay penalty
-        return result
-
-def render_docs(doc_list, file_type, use_markdown=False):
     for doc_name in doc_list:
-        template = docs_templates[doc_name + '.pt'] # .pt is the conventional extension for chameleon page templates
-        doc = template(consists=consists, global_constants=global_constants, makefile_args=makefile_args,
-                       base_lang_strings=base_lang_strings, metadata=metadata, utils=utils, doc_helper=DocHelper(), doc_name=doc_name)
+        # .pt is the conventional extension for chameleon page templates
+        template = docs_templates[doc_name + ".pt"]
+        doc = template(
+            roster=roster,
+            consists=consists,
+            global_constants=global_constants,
+            command_line_args=command_line_args,
+            git_info=git_info,
+            metadata=metadata,
+            utils=utils,
+            doc_helper=doc_helper,
+            doc_name=doc_name,
+        )
         if use_markdown:
             # the doc might be in markdown format, if so we need to render markdown to html, and wrap the result in some boilerplate html
-            markdown_wrapper = docs_templates['markdown_wrapper.pt']
-            doc = markdown_wrapper(consists=consists, content=markdown.markdown(doc), global_constants=global_constants, makefile_args=makefile_args,
-                              metadata=metadata, utils=utils, doc_helper=DocHelper(), doc_name=doc_name)
-        if file_type == 'html':
-            subdir = 'html'
-        else:
-            subdir = ''
+            markdown_wrapper = PageTemplateLoader(docs_src, format="text")[
+                "markdown_wrapper.pt"
+            ]
+            doc = markdown_wrapper(
+                content=markdown.markdown(doc),
+                roster=roster,
+                consists=consists,
+                global_constants=global_constants,
+                command_line_args=command_line_args,
+                git_info=git_info,
+                metadata=metadata,
+                utils=utils,
+                doc_helper=doc_helper,
+                doc_name=doc_name,
+            )
         # save the results of templating
-        doc_file = codecs.open(os.path.join(docs_output_path, subdir, doc_name + '.' + file_type), 'w','utf8')
+        doc_file = codecs.open(
+            os.path.join(docs_output_path, doc_name + "." + file_type),
+            "w",
+            "utf8",
+        )
         doc_file.write(doc)
         doc_file.close()
 
+
+"""
 def render_docs_images():
     # process vehicle buy menu sprites for reuse in docs
     # extend this similar to render_docs if other image types need processing in future
@@ -144,32 +103,427 @@ def render_docs_images():
     vehicle_graphics_src = os.path.join(currentdir, 'generated', 'graphics')
     for consist in consists:
         vehicle_spritesheet = Image.open(os.path.join(vehicle_graphics_src, consist.id + '.png'))
-        processed_vehicle_image = vehicle_spritesheet.crop(box=(370,
-                                                                10,
-                                                                370 + global_constants.buy_menu_sprite_width,
-                                                                10 + global_constants.buy_menu_sprite_height))
+
+        # these 'source' var names for images are misleading
+        source_vehicle_image = Image.new("P", (consist.buy_menu_width, global_constants.docs_sprite_height), 255)
+        source_vehicle_image.putpalette(Image.open('palette_key.png').palette)
+
+        source_vehicle_image_tmp = vehicle_spritesheet.crop(box=(consist.buy_menu_x_loc,
+                                                                 10,
+                                                                 consist.buy_menu_x_loc + consist.buy_menu_width,
+                                                                 10 + global_constants.docs_sprite_height))
+        crop_box_dest = (0,
+                         0,
+                         consist.buy_menu_width,
+                         global_constants.docs_sprite_height)
+        source_vehicle_image.paste(source_vehicle_image_tmp.crop(crop_box_dest), crop_box_dest)
+
+        # recolour to more pleasing CC combos
+        cc_remap_1 = {198: 179, 199: 180, 200: 181, 201: 182, 202: 183, 203: 164, 204: 165, 205: 166,
+                      80: 8, 81: 9, 82: 10, 83: 11, 84: 12, 85: 13, 86: 14, 87: 15}
+        cc_remap_2 = {80: 198, 81: 199, 82: 200, 83: 201, 84: 202, 85: 203, 86: 204, 87: 205}
+        for colour_name, cc_remap in {'red': cc_remap_1, 'blue': cc_remap_2}.items():
+            processed_vehicle_image = source_vehicle_image.copy().point(lambda i: cc_remap[i] if i in cc_remap.keys() else i)
+
+            # oversize the images to account for how browsers interpolate the images on retina / HDPI screens
+            processed_vehicle_image = processed_vehicle_image.resize((4 * processed_vehicle_image.size[0], 4 * global_constants.docs_sprite_height),
+                                                                     resample=Image.NEAREST)
+            output_path = os.path.join(images_dir_dst, consist.id + '_' + colour_name + '.png')
+            processed_vehicle_image.save(output_path, optimize=True, transparency=0)
+"""
+
+
+def render_docs_images(consist, static_dir_dst, generated_graphics_path, doc_helper):
+    # process vehicle buy menu sprites for reuse in docs
+    # extend this similar to render_docs if other image types need processing in future
+
+    # vehicles: assumes render_graphics has been run and generated dir has correct content
+    # I'm not going to try and handle that in python, makefile will handle it in production
+    # for development, just run render_graphics manually before running render_docs
+
+    """
+    !! shim - images aren't nested by grf name yet
+    vehicle_spritesheet = Image.open(
+        os.path.join(generated_graphics_path, consist.id + ".png")
+    )
+    """
+
+    vehicle_spritesheet = Image.open(
+        os.path.join("generated", "graphics", consist.id + ".png")
+    )
+
+    # these 'source' var names for images are misleading
+    source_vehicle_image = Image.new(
+        "P",
+        (doc_helper.docs_sprite_width(consist), doc_helper.docs_sprite_height),
+        255,
+    )
+    source_vehicle_image.putpalette(Image.open("palette_key.png").palette)
+
+    docs_image_variants = []
+
+    # ===== legacy Hog docs image code ===== #
+
+    # these 'source' var names for images are misleading
+    source_vehicle_image_tmp = vehicle_spritesheet.crop(
+        box=(
+            consist.buy_menu_x_loc,
+            10,
+            consist.buy_menu_x_loc + doc_helper.docs_sprite_width(consist),
+            10 + doc_helper.docs_sprite_height,
+        )
+    )
+    crop_box_dest = (
+        0,
+        0,
+        doc_helper.docs_sprite_width(consist),
+        doc_helper.docs_sprite_height,
+    )
+    source_vehicle_image.paste(
+        source_vehicle_image_tmp.crop(crop_box_dest), crop_box_dest
+    )
+
+    # !! shim - connect to default variants / liveries
+    for variant in [
+        {
+            "cc_remaps": {"CC1": "COLOUR_BLUE", "CC2": "COLOUR_BLUE"},
+            "livery_name": "blue_blue",
+        },
+        {
+            "cc_remaps": {"CC1": "COLOUR_RED", "CC2": "COLOUR_WHITE"},
+            "livery_name": "red_white",
+        },
+    ]:
+        docs_image_variants.append(
+            [
+                source_vehicle_image.copy(),
+                variant,
+            ]
+        )
+
+    # ===== end legacy Hog docs image code ===== #
+
+    """
+    !! the modernised docs image processing copied from Horse, but very train specific
+    !! arguably this should be made modular and moved somewhere else, but eh, TMWFTLB
+    for variant in doc_helper.get_docs_livery_variants(consist):
+        # !! massive JFDI hax to make this work - really the gestalt should know how many rows are consumed per livery
+        if (
+            consist.gestalt_graphics.__class__.__name__
+            == "GestaltGraphicsConsistPositionDependent"
+        ):
+            y_offset = 60 * variant["buyable_variant"].relative_spriterow_num
+        else:
+            if consist.docs_image_spriterow is not None:
+                y_offset = 30 * consist.docs_image_spriterow
+            else:
+                y_offset = 30 * variant["buyable_variant"].relative_spriterow_num
+        if not consist.dual_headed:
+            # relies on additional_liveries being in predictable row offsets (should be true as of July 2020)
+            source_vehicle_image_tmp = vehicle_spritesheet.crop(
+                box=(
+                    consist.buy_menu_x_loc,
+                    10 + y_offset,
+                    consist.buy_menu_x_loc + doc_helper.docs_sprite_width(consist),
+                    10 + y_offset + doc_helper.docs_sprite_height,
+                )
+            )
+        if consist.dual_headed:
+            # oof, super special handling of dual-headed vehicles, OpenTTD handles this automatically in the buy menu, but docs have to handle explicitly
+            # !! hard-coded values might fail in future, sort that out then if needed, they can be looked up in global constants
+            # !! this also won't work with engine additional_liveries currently
+            source_vehicle_image_1 = vehicle_spritesheet.copy().crop(
+                box=(
+                    224,
+                    10 + y_offset,
+                    224 + (4 * consist.length) + 1,
+                    10 + y_offset + doc_helper.docs_sprite_height,
+                )
+            )
+            source_vehicle_image_2 = vehicle_spritesheet.copy().crop(
+                box=(
+                    104,
+                    10 + y_offset,
+                    104 + (4 * consist.length) + 1,
+                    10 + y_offset + doc_helper.docs_sprite_height,
+                )
+            )
+            source_vehicle_image_tmp = source_vehicle_image.copy()
+            source_vehicle_image_tmp.paste(
+                source_vehicle_image_1,
+                (
+                    0,
+                    0,
+                    source_vehicle_image_1.size[0],
+                    doc_helper.docs_sprite_height,
+                ),
+            )
+            source_vehicle_image_tmp.paste(
+                source_vehicle_image_2,
+                (
+                    source_vehicle_image_1.size[0] - 1,
+                    0,
+                    source_vehicle_image_1.size[0] - 1 + source_vehicle_image_2.size[0],
+                    doc_helper.docs_sprite_height,
+                ),
+            )
+        crop_box_dest = (
+            0,
+            0,
+            doc_helper.docs_sprite_width(consist),
+            doc_helper.docs_sprite_height,
+        )
+        source_vehicle_image.paste(
+            source_vehicle_image_tmp.crop(crop_box_dest), crop_box_dest
+        )
+
+        # add pantographs if needed
+        if consist.pantograph_type is not None:
+            # buy menu uses pans 'down', but in docs pans 'up' looks better, weird eh?
+            pantographs_spritesheet = Image.open(
+                os.path.join(
+                    generated_graphics_path, consist.id + "_pantographs_up.png"
+                )
+            )
+            pan_crop_width = consist.buy_menu_width
+            pantographs_image = pantographs_spritesheet.crop(
+                box=(
+                    consist.buy_menu_x_loc,
+                    10,
+                    consist.buy_menu_x_loc + pan_crop_width,
+                    10 + doc_helper.docs_sprite_height,
+                )
+            )
+            pantographs_mask = pantographs_image.copy()
+            pantographs_mask = pantographs_mask.point(
+                lambda i: 0 if i == 255 or i == 0 else 255
+            ).convert(
+                "1"
+            )  # the inversion here of blue and white looks a bit odd, but potato / potato
+            source_vehicle_image.paste(
+                pantographs_image.crop(crop_box_dest),
+                crop_box_dest,
+                pantographs_mask.crop(crop_box_dest),
+            )
+
+            if consist.dual_headed:
+                # oof, super special handling of pans for dual-headed vehicles
+                pan_start_x_loc = (
+                    global_constants.spritesheet_bounding_boxes_asymmetric_unreversed[
+                        2
+                    ][0]
+                )
+                pantographs_image = pantographs_spritesheet.crop(
+                    box=(
+                        pan_start_x_loc,
+                        10,
+                        pan_start_x_loc + pan_crop_width,
+                        10 + doc_helper.docs_sprite_height,
+                    )
+                )
+                crop_box_dest_pan_2 = (
+                    int(doc_helper.docs_sprite_width(consist) / 2),
+                    0,
+                    int(doc_helper.docs_sprite_width(consist) / 2) + pan_crop_width,
+                    doc_helper.docs_sprite_height,
+                )
+                pantographs_mask = pantographs_image.copy()
+                pantographs_mask = pantographs_mask.point(
+                    lambda i: 0 if i == 255 or i == 0 else 255
+                ).convert(
+                    "1"
+                )  # the inversion here of blue and white looks a bit odd, but potato / potato
+                source_vehicle_image.paste(
+                    pantographs_image, crop_box_dest_pan_2, pantographs_mask
+                )
+                pantographs_spritesheet.close()
+        docs_image_variants.append(
+            [
+                source_vehicle_image.copy(),
+                variant,
+            ]
+        )
+    """
+    for processed_vehicle_image, variant in docs_image_variants:
+        cc_remap_indexes = doc_helper.remap_company_colours(variant["cc_remaps"])
+        # probably fragile workaround to use the alternative livery spriterow
+        # for the edge case that a docs default livery 2nd company colour matches the alternative livery triggers
+        cc_remap_indexes = doc_helper.remap_company_colours(variant["cc_remaps"])
+
+        processed_vehicle_image = processed_vehicle_image.copy().point(
+            lambda i: cc_remap_indexes[i] if i in cc_remap_indexes.keys() else i
+        )
+
         # oversize the images to account for how browsers interpolate the images on retina / HDPI screens
-        processed_vehicle_image = processed_vehicle_image.resize((4 * global_constants.buy_menu_sprite_width, 4 * global_constants.buy_menu_sprite_height),
-                                                                  resample=Image.NEAREST)
-        output_path = os.path.join(images_dir_dst, consist.id + '.png')
+        processed_vehicle_image = processed_vehicle_image.resize(
+            (
+                4 * processed_vehicle_image.size[0],
+                4 * doc_helper.docs_sprite_height,
+            ),
+            resample=Image.Resampling.NEAREST,
+        )
+        output_path = os.path.join(
+            static_dir_dst,
+            "img",
+            consist.id + "_" + variant["livery_name"] + ".png",
+        )
         processed_vehicle_image.save(output_path, optimize=True, transparency=0)
+    source_vehicle_image.close()
+
 
 def main():
+    if command_line_args.suppress_docs:
+        print("[SKIPPING DOCS] render_docs.py (suppress_docs makefile flag set)")
+        return
+    print("[RENDER DOCS]", " ".join(sys.argv))
     start = time()
+    # don't init road_hog on import of this module, do it explicitly inside main()
+    road_hog.main()
+
+    roster = road_hog.roster_manager.active_roster
+    # expect Exception failures if there is no active roster, don't bother explicitly handling that case
+
+    # can't pass roster in to DocHelper at init, multiprocessing fails as it can't pickle the roster object
+    doc_helper = DocHelper(lang_strings=roster.get_lang_data("english")["lang_strings"])
+
+    # default to no mp, makes debugging easier (mp fails to pickle errors correctly)
+    num_pool_workers = command_line_args.num_pool_workers
+    if num_pool_workers == 0:
+        use_multiprocessing = False
+        # just print, no need for a coloured echo_message
+        print("Multiprocessing disabled: (PW=0)")
+    else:
+        use_multiprocessing = True
+        # logger = multiprocessing.log_to_stderr()
+        # logger.setLevel(25)
+        # just print, no need for a coloured echo_message
+        print("Multiprocessing enabled: (PW=" + str(num_pool_workers) + ")")
+
+    # setting up a cache for compiled chameleon templates can significantly speed up template rendering
+    chameleon_cache_path = os.path.join(
+        currentdir, global_constants.chameleon_cache_dir
+    )
+    # exist_ok=True is used for case with parallel make (`make -j 2` or similar), don't fail with error if dir already exists
+    os.makedirs(chameleon_cache_path, exist_ok=True)
+    os.environ["CHAMELEON_CACHE"] = chameleon_cache_path
+
+    docs_output_path = os.path.join(currentdir, "docs", command_line_args.grf_name)
+    html_docs_output_path = os.path.join(docs_output_path, "html")
+    if os.path.exists(docs_output_path):
+        shutil.rmtree(docs_output_path)
+    os.makedirs(docs_output_path)
+    os.makedirs(html_docs_output_path)
+
+    shutil.copy(os.path.join(docs_src, "index.html"), docs_output_path)
+    # convenience for local development, this means docs/index.html can be opened from shell, and has list of links to tech tree, which is a common use case
+    shutil.copyfile(
+        os.path.join(docs_src, "local_docs_root.html"),
+        os.path.join(currentdir, "docs", "index.html"),
+    )
+
+    static_dir_src = os.path.join(docs_src, "static")
+    static_dir_dst = os.path.join(html_docs_output_path, "static")
+    shutil.copytree(static_dir_src, static_dir_dst)
+
+    consists = roster.consists_in_buy_menu_order
+    # default sort for docs is by intro year
+    consists = sorted(consists, key=lambda consist: consist.intro_year)
+    dates = sorted([i.intro_year for i in consists])
+    metadata["dates"] = (dates[0], dates[-1])
+
     # render standard docs from a list
-    html_docs = ['road_vehicles', 'code_reference', 'get_started']
-    txt_docs = ['license', 'readme']
-    markdown_docs = ['changelog']
+    html_docs = [
+        "code_reference",
+        "get_started",
+        "translations",
+        # "tech_tree_table_blue",
+        "tech_tree_table_red",
+        # "tech_tree_table_blue_simplified",
+        # "tech_tree_table_red_simplified",
+        # "train_whack",
+        "road_vehicles",
+    ]
+    txt_docs = ["readme"]
+    license_docs = ["license"]
+    markdown_docs = ["changelog"]
 
-    render_docs(html_docs, 'html')
-    render_docs(txt_docs, 'txt')
+    render_docs_start = time()
+    render_docs(
+        html_docs, "html", html_docs_output_path, road_hog, consists, doc_helper
+    )
+    render_docs(txt_docs, "txt", docs_output_path, road_hog, consists, doc_helper)
+    render_docs(
+        license_docs,
+        "txt",
+        docs_output_path,
+        road_hog,
+        consists,
+        doc_helper,
+        source_is_repo_root=True,
+    )
     # just render the markdown docs twice to get txt and html versions, simples no?
-    render_docs(markdown_docs, 'txt')
-    render_docs(markdown_docs, 'html', use_markdown=True)
+    render_docs(markdown_docs, "txt", docs_output_path, road_hog, consists, doc_helper)
+    render_docs(
+        markdown_docs,
+        "html",
+        html_docs_output_path,
+        road_hog,
+        consists,
+        doc_helper,
+        use_markdown=True,
+    )
+    print("render_docs", time() - render_docs_start)
+    """
+    !! shim out - copied from Horse
+    # render vehicle details
+    # this is slow and _might_ go faster in an MP pool, but eh overhead...
+    render_vehicle_details_start = time()
+    for consist in roster.engine_consists:
+        consist.assert_description_foamer_facts()
+        render_docs_vehicle_details(
+            consist,
+            "vehicle_details_engine",
+            html_docs_output_path,
+            consists,
+            doc_helper,
+        )
+    print("render_docs_vehicle_details", time() - render_vehicle_details_start)
+    """
     # process images for use in docs
-    render_docs_images()
-    # eh, how long does this take anyway?
-    print(format((time() - start), '.2f')+'s')
+    # yes, I really did bother using a pool to save at best a couple of seconds, because FML :)
+    generated_graphics_path = os.path.join(
+        road_hog.generated_files_path, "graphics", roster.grf_name
+    )
+    slow_start = time()
+    if use_multiprocessing == False:
+        for consist in consists:
+            render_docs_images(
+                consist, static_dir_dst, generated_graphics_path, doc_helper
+            )
+    else:
+        # Would this go faster if the pipelines from each consist were placed in MP pool, not just the consist?
+        # probably potato / potato tbh
+        pool = multiprocessing.Pool(processes=num_pool_workers)
+        pool.starmap(
+            render_docs_images,
+            zip(
+                consists,
+                repeat(static_dir_dst),
+                repeat(generated_graphics_path),
+                repeat(doc_helper),
+            ),
+        )
+        pool.close()
+        pool.join()
+    print("render_docs_images", time() - slow_start)
 
-if __name__ == '__main__':
+    print(
+        "[RENDER DOCS]",
+        command_line_args.grf_name,
+        "- complete",
+        format((time() - start), ".2f") + "s",
+    )
+
+
+if __name__ == "__main__":
     main()

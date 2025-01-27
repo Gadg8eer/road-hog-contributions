@@ -1,17 +1,28 @@
-from road_vehicle import LogHauler, DieselRoadVehicle
+from road_vehicle import LogHEQSConsist, DieselVehicleUnit
 
-consist = LogHauler(id='buff_log',
-                    base_numeric_id=110,
-                    name='Buff',
-                    road_type='HAUL',
-                    power=550,
-                    speed=60,
-                    vehicle_life=40,
-                    intro_date=1994)
 
-consist.add_unit(type=DieselRoadVehicle,
-                 capacity=40,
-                 vehicle_length=7)
+def main(roster_id):
+    consist = LogHEQSConsist(
+        roster_id=roster_id,
+        id="buff_log",
+        base_numeric_id=110,
+        name="Buff",
+        power=550,
+        speed=60,
+        gen=4,
+    )
 
-consist.add_unit(capacity=35,
-                 vehicle_length=8)
+    consist.add_unit(
+        base_platform=None,  # no base platform by design currently
+        type=DieselVehicleUnit,
+        # capacity=40,
+        vehicle_length=7,
+    )
+
+    consist.add_unit(
+        base_platform=None,  # no base platform by design currently
+        # capacity=35,
+        vehicle_length=8,
+    )
+
+    return consist

@@ -1,14 +1,21 @@
-from road_vehicle import RefrigeratedHauler, ElectricRoadVehicle
+from road_vehicle import RefrigeratedTramConsist, ElectricVehicleUnit
 
-consist = RefrigeratedHauler(id='winterfold_refrigerated',
-                             base_numeric_id=770,
-                             name='Winterfold',
-                             tram_type='ELRL',
-                             vehicle_life=40,
-                             intro_date=1915)
 
-consist.add_unit(type=ElectricRoadVehicle,
-                 capacity=30,
-                 vehicle_length=8,
-                 effects=['EFFECT_SPRITE_ELECTRIC, 0, 0, 10'],
-                 repeat=2)
+def main(roster_id):
+    consist = RefrigeratedTramConsist(
+        roster_id=roster_id,
+        id="winterfold_refrigerated",
+        base_numeric_id=770,
+        name="Winterfold",
+        gen=2,
+        intro_date_offset=10,
+    )  # introduce later than gen epoch by design
+
+    consist.add_unit(
+        base_platform=None,  # no base platform by design currently
+        type=ElectricVehicleUnit,
+        vehicle_length=8,
+        repeat=2,
+    )
+
+    return consist

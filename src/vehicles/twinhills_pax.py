@@ -1,14 +1,20 @@
-from road_vehicle import PaxHauler, ElectricRoadVehicle
+from road_vehicle import PaxLocalTramConsist, ElectricVehicleUnit
 
-consist = PaxHauler(id='twinhills_pax',
-                    base_numeric_id=70,
-                    name='Twinhills',
-                    tram_type='ELRL',
-                    vehicle_life=40,
-                    intro_date=1990)
 
-consist.add_unit(type=ElectricRoadVehicle,
-                 capacity=70,
-                 vehicle_length=8,
-                 effects=['EFFECT_SPRITE_ELECTRIC, 0, 0, 10'],
-                 repeat=2)
+def main(roster_id):
+    consist = PaxLocalTramConsist(
+        roster_id=roster_id,
+        id="twinhills_pax",
+        base_numeric_id=70,
+        name="Twinhills",
+        gen=5,
+    )
+
+    consist.add_unit(
+        base_platform=None,  # pax trams have no base platform by design currently
+        type=ElectricVehicleUnit,
+        vehicle_length=8,
+        repeat=2,
+    )
+
+    return consist

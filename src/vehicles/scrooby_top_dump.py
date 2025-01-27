@@ -1,18 +1,23 @@
-from road_vehicle import DumpHauler, SteamRoadVehicle
+from road_vehicle import DumpTramConsist
+from base_platforms.trams import SteamEngineTram2
 
-consist = DumpHauler(id='scrooby_top_dump',
-                     base_numeric_id=700,
-                     name='Scrooby Top',
-                     tram_type='RAIL',
-                     vehicle_life=40,
-                     intro_date=1870)
 
-consist.add_unit(type=SteamRoadVehicle,
-                 capacity=0,
-                 vehicle_length=4,
-                 effects=['EFFECT_SPRITE_STEAM, -3, 0, 12'],
-                 always_use_same_spriterow=True)
+def main(roster_id):
+    consist = DumpTramConsist(
+        roster_id=roster_id,
+        id="scrooby_top_dump",
+        base_numeric_id=700,
+        name="Scrooby Top",
+        gen=1,
+        intro_date_offset=10,
+    )  # introduce later than gen epoch by design
 
-consist.add_unit(capacity=12,
-                 vehicle_length=3,
-                 repeat=4)
+    consist.add_unit(base_platform=SteamEngineTram2)
+
+    consist.add_unit(
+        base_platform=None,  # no base platform by design currently
+        vehicle_length=3,
+        repeat=4,
+    )
+
+    return consist

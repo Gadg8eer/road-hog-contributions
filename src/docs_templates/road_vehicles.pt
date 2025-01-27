@@ -4,30 +4,46 @@
     <div class="span12">
         <h2>${len(consists)} road vehicles and trams for OpenTTD</h2>
         <hr />
-        <tal:road_vehicles_and_trams repeat="vehicle_type ['Road Vehicle', 'Tram']">
-            <h3>${vehicle_type}s</h3>
+        <tal:base_track_type_name repeat="base_track_type_name doc_helper.get_base_track_types(consists)">
+            <h3 id="${base_track_type_name}">${base_track_type_name}</h3>
             <table class="table table-striped tablesorter">
                 <thead>
                     <tr>
-                        <td><!--! empty cell --></td>
+                        <td colspan="2"><!--! empty cell --></td>
                         <th>Vehicle Name</th>
+                        <th>Type</th>
                         <th class="number">Intro Date</th>
+                        <th class="number">Power (hp)</th>
+                        <th class="number">Speed (mph)</th>
                         <th>Special Features</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tal:consists_list repeat="consist consists">
-                        <tr tal:condition="(consist.roadveh_flag_tram) if vehicle_type is 'Tram' else (not consist.roadveh_flag_tram)"
+                        <tr tal:condition="consist.base_track_type_name == base_track_type_name"
+                            tal:define="consist_name_dict doc_helper.unpack_name_string(consist)"
                             id="${consist.id}">
-                            <td style="vertical-align:middle; width:${2 * global_constants.buy_menu_sprite_width};">
-                                <img src="static/img/${consist.id}.png"
-                                     width="${2 * global_constants.buy_menu_sprite_width}"
-                                     height="${2 * global_constants.buy_menu_sprite_height}" />
+                            <td class="vehicle-image"
+                                style="width:${2 * doc_helper.docs_sprite_width(consist)}px;">
+                                <img src="static/img/${consist.id}_blue_blue.png"
+                                     style="width:${2 * doc_helper.docs_sprite_width(consist)}px;
+                                            height:${2 * doc_helper.docs_sprite_height}px;
+                                     "/>
+                            </td>
+                            <td class="vehicle-image"
+                                style="width:${2 * doc_helper.docs_sprite_width(consist)}px;">
+                                <img src="static/img/${consist.id}_red_white.png"
+                                     style="width:${2 * doc_helper.docs_sprite_width(consist)}px;
+                                            height:${2 * doc_helper.docs_sprite_height}px;
+                                     "/>
                             </td>
                             <td style="vertical-align:middle;">
-                                <a class="table-link-dark" href="#${consist.id}">${doc_helper.unpack_name_string(consist)}</a>
+                                <a class="table-link-dark" href="#${consist.id}">${consist_name_dict['name']} (${consist_name_dict['power_suffix']})</a>
                             </td>
+                            <td>${consist_name_dict['type_suffix']}</td>
                             <td style="vertical-align:middle;" class="number">${consist.intro_date}</td>
+                            <td style="vertical-align:middle;" class="number">${consist.power}</td>
+                            <td style="vertical-align:middle;" class="number">${consist.speed}</td>
                             <td style="vertical-align:middle;">
                                 ${', '.join(doc_helper.get_special_features_for_vehicle(consist)).capitalize()}
                             </td>
@@ -35,7 +51,7 @@
                     </tal:consists_list>
                 </tbody>
             </table>
-        </tal:road_vehicles_and_trams>
+        </tal:base_track_type_name>
     </div>
 
 </div>

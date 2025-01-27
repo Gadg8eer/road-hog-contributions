@@ -1,17 +1,18 @@
-from road_vehicle import FlatHauler, SteamRoadVehicle
+from road_vehicle import FlatbedTruckConsist
+from base_platforms.trucks import SteamCaboverRigidTruckGen2A
 
-consist = FlatHauler(id='chainburn_flat',
-                        base_numeric_id=630,
-                        name='Chainburn',
-                        vehicle_life=40,
-                        intro_date=1910)
 
-consist.add_unit(type=SteamRoadVehicle,
-                 capacity=12,
-                 vehicle_length=5,
-                 cargo_length=3,
-                 effects=['EFFECT_SPRITE_STEAM, -3, 0, 12'])
+def main(roster_id):
+    consist = FlatbedTruckConsist(
+        roster_id=roster_id,
+        id="chainburn_flat",
+        base_numeric_id=630,
+        name="Chainburn",
+        gen=2,
+    )
 
-consist.add_unit(capacity=12,
-                 vehicle_length=4,
-                 cargo_length=4)
+    consist.add_unit(base_platform=SteamCaboverRigidTruckGen2A)
+
+    consist.add_unit(base_platform=None, vehicle_length=4, cargo_length=4)
+
+    return consist

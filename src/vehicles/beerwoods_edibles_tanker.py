@@ -1,14 +1,19 @@
-from road_vehicle import EdiblesTanker, DieselRoadVehicle
+from road_vehicle import EdiblesTankerTruckConsist
+from base_platforms.trucks import DieselCaboverRigidTruckGen3A
 
-consist = EdiblesTanker(id='beerwoods_edibles_tanker',
-                        base_numeric_id=420,
-                        name='Beerwoods',
-                        vehicle_life=40,
-                        intro_date=1943)
 
-consist.add_unit(type=DieselRoadVehicle,
-                 capacity=15,
-                 vehicle_length=5)
+def main(roster_id):
+    consist = EdiblesTankerTruckConsist(
+        roster_id=roster_id,
+        id="beerwoods_edibles_tanker",
+        base_numeric_id=420,
+        name="Beerwoods",
+        gen=3,
+        intro_date_offset=4,
+    )  # introduce later than gen epoch by design
 
-consist.add_unit(capacity=15,
-                 vehicle_length=4)
+    consist.add_unit(base_platform=DieselCaboverRigidTruckGen3A)
+
+    consist.add_unit(base_platform=None, vehicle_length=4)
+
+    return consist

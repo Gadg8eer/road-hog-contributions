@@ -1,16 +1,18 @@
-from road_vehicle import FlatHauler, DieselRoadVehicle
+from road_vehicle import FlatbedTruckConsist
+from base_platforms.trucks import DieselCaboverRigidTruckGen3A
 
-consist = FlatHauler(id='windergill_flat',
-                        base_numeric_id=640,
-                        name='Windergill',
-                        vehicle_life=40,
-                        intro_date=1939)
 
-consist.add_unit(type=DieselRoadVehicle,
-                 capacity=15,
-                 vehicle_length=5,
-                 cargo_length=3)
+def main(roster_id):
+    consist = FlatbedTruckConsist(
+        roster_id=roster_id,
+        id="windergill_flat",
+        base_numeric_id=640,
+        name="Windergill",
+        gen=3,
+    )
 
-consist.add_unit(capacity=15,
-                 vehicle_length=4,
-                 cargo_length=4)
+    consist.add_unit(base_platform=DieselCaboverRigidTruckGen3A)
+
+    consist.add_unit(base_platform=None, vehicle_length=4, cargo_length=4)
+
+    return consist

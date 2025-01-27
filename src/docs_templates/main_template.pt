@@ -2,7 +2,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title >Road Hog</title>
+    <title >${roster.str_grf_name}</title>
     <meta http-equiv="Content-Type" content="text/html" />
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -44,9 +44,6 @@
                     </li>
                 </ul>
                 <ul class="nav pull-right">
-                    <li class="${doc_helper.get_active_nav(doc_name, 'translations')}">
-                        <a href="${metadata['eints_url']}"><i class="icon-globe icon-white"></i> Help Translate Road Hog</a>
-                    </li>
                     <li>
                         <a href="${metadata['dev_thread_url']}"><i class="icon-comment icon-white"></i> Discuss at TT-Forums.net</a>
                     </li>
@@ -62,9 +59,8 @@
                     var index = Math.floor(Math.random()*images.length);
                     var random_image = images.splice(index, 1);
                     document.write('<a href="road_vehicles.html#' + random_image + '" style="display:block; margin-bottom: 20px;"> \
-                                        <img src="static/img/'+ random_image + '.png" \
-                                             width="${4 * global_constants.buy_menu_sprite_width}" \
-                                             height="${4 * global_constants.buy_menu_sprite_height}"> \
+                                        <img src="static/img/'+ random_image + '_red_white.png" \
+                                             style="scale:100%;"> \
                                     </a>')
                     return true;
                 }
@@ -75,8 +71,8 @@
             </script>
         </div>
         <div class="container">
-            <h1 style="font-size:48px; padding-top:30px;">Road Hog</h1>
-            <p class="lead">A Big Fat Road Vehicle Set</p>
+            <h1 style="font-size:48px; padding-top:30px;">${roster.str_grf_name}</h1>
+            <p class="lead">${doc_helper.lang_strings["STR_GRF_SUBHEAD"]}</p>
         </div>
     </div>
     <metal:block define-slot="opt_page_header">
@@ -88,7 +84,7 @@
         </metal:block>
     </div>
     <div style="margin-top:30px; text-align:center; color:#999; padding:5px; background-color:#eee; border-top:solid 1px #ddd; box-shadow: inset 0px 1px 1px #ddd">
-        Road Hog, with thanks to all who helped
+        ${roster.str_grf_name}, with thanks to all who helped
     </div>
 </body>
 </html>

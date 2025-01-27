@@ -1,16 +1,28 @@
-from road_vehicle import DumpHauler, DieselRoadVehicle
+from road_vehicle import DumpHEQSConsist, DieselVehicleUnit
 
-consist = DumpHauler(id='witch_hill_dump',
-                     base_numeric_id=500,
-                     name='Witch Hill',
-                     road_type='HAUL',
-                     power=900,
-                     speed=50,  # dibbled up above RL for game balance
-                     type_base_running_cost_points=30,  # dibble running costs for game balance
-                     vehicle_life=40,
-                     intro_date=2007)
 
-consist.add_unit(type=DieselRoadVehicle,
-                 capacity=85,  # much bigger is not much better here
-                 vehicle_length=7,
-                 effects=['EFFECT_SPRITE_AIRCRAFT_BREAKDOWN_SMOKE, -2, 1, 10', 'EFFECT_SPRITE_AIRCRAFT_BREAKDOWN_SMOKE, -2, -1, 10'])
+def main(roster_id):
+    consist = DumpHEQSConsist(
+        roster_id=roster_id,
+        id="witch_hill_dump",
+        base_numeric_id=500,
+        name="Witch Hill",
+        power=900,
+        speed=50,  # dibbled up above RL for game balance
+        type_base_running_cost_points=30,  # dibble running costs for game balance
+        gen=4,
+        intro_date_offset=17,
+    )  # introduce later than gen epoch by design
+
+    consist.add_unit(
+        base_platform=None,  # no base platform by design currently
+        type=DieselVehicleUnit,
+        # capacity=85,  # much bigger is not much better here
+        vehicle_length=7,
+        effects=[
+            "EFFECT_SPRITE_AIRCRAFT_BREAKDOWN_SMOKE, -2, 1, 10",
+            "EFFECT_SPRITE_AIRCRAFT_BREAKDOWN_SMOKE, -2, -1, 10",
+        ],
+    )
+
+    return consist

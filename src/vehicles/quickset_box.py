@@ -1,17 +1,18 @@
-from road_vehicle import BoxHauler, DieselRoadVehicle
+from road_vehicle import BoxTruckConsist
+from base_platforms.trucks import DieselConventionalCabSemiTractorTruckGen4A
 
-consist = BoxHauler(id='quickset_box',
-                    base_numeric_id=350,
-                    name='Quickset',
-                    semi_truck_so_redistribute_capacity=True,
-                    vehicle_life=40,
-                    intro_date=1968)
 
-consist.add_unit(type=DieselRoadVehicle,
-                 capacity=0,
-                 vehicle_length=2,
-                 semi_truck_shift_offset_jank=2,
-                 effects=['EFFECT_SPRITE_DIESEL, -2, 1, 10'])
+def main(roster_id):
+    consist = BoxTruckConsist(
+        roster_id=roster_id,
+        id="quickset_box",
+        base_numeric_id=350,
+        name="Quickset",
+        gen=4,
+    )
 
-consist.add_unit(capacity=40,
-                 vehicle_length=7)
+    consist.add_unit(base_platform=DieselConventionalCabSemiTractorTruckGen4A)
+
+    consist.add_unit(base_platform=None, vehicle_length=7)
+
+    return consist

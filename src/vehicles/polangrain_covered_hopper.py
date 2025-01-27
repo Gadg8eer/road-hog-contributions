@@ -1,14 +1,16 @@
-from road_vehicle import CoveredHopperHauler, ElectricRoadVehicle
+from road_vehicle import CoveredHopperTramConsist
+from base_platforms.trams import ElectricMotorTram2
 
-consist = CoveredHopperHauler(id='polangrain_covered_hopper',
-                              base_numeric_id=790,
-                              name='Polangrain',
-                              tram_type='ELRL',
-                              vehicle_life=40,
-                              intro_date=1900)
 
-consist.add_unit(type=ElectricRoadVehicle,
-                 capacity=30,
-                 vehicle_length=8,
-                 effects=['EFFECT_SPRITE_ELECTRIC, 0, 0, 10'],
-                 repeat=2)
+def main(roster_id):
+    consist = CoveredHopperTramConsist(
+        roster_id=roster_id,
+        id="polangrain_covered_hopper",
+        base_numeric_id=790,
+        name="Polangrain",
+        gen=2,
+    )
+
+    consist.add_unit(base_platform=ElectricMotorTram2, repeat=2)
+
+    return consist

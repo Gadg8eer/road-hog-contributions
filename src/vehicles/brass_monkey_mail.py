@@ -1,13 +1,22 @@
-from road_vehicle import MailHauler, DieselRoadVehicle
+from road_vehicle import MailTruckConsist, DieselVehicleUnit
 
-consist = MailHauler(id='brass_monkey_mail',
-                     base_numeric_id=570,
-                     name='Brass Monkey',
-                     power=140,
-                     speed=55,
-                     vehicle_life=40,
-                     intro_date=1940)
 
-consist.add_unit(type=DieselRoadVehicle,
-                 capacity=15,
-                 vehicle_length=6)
+def main(roster_id):
+    consist = MailTruckConsist(
+        roster_id=roster_id,
+        id="brass_monkey_mail",
+        base_numeric_id=570,
+        name="Brass Monkey",
+        power=140,
+        speed=55,
+        gen=3,
+        intro_date_offset=1,
+    )  # introduce later than gen epoch by design
+
+    consist.add_unit(
+        base_platform=None,  # mail trucks have no base platform by design currently
+        type=DieselVehicleUnit,
+        vehicle_length=6,
+    )
+
+    return consist

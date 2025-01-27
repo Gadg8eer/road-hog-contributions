@@ -1,14 +1,16 @@
-from road_vehicle import BoxHauler, ElectricRoadVehicle
+from road_vehicle import BoxTramConsist
+from base_platforms.trams import ElectricMotorTram4
 
-consist = BoxHauler(id='colbiggan_box',
-                    base_numeric_id=880,
-                    name='Colbiggan',
-                    tram_type='ELRL',
-                    vehicle_life=40,
-                    intro_date=1940)
 
-consist.add_unit(type=ElectricRoadVehicle,
-                 capacity=36,
-                 vehicle_length=8,
-                 effects=['EFFECT_SPRITE_ELECTRIC, 0, 0, 10'],
-                 repeat=2)
+def main(roster_id):
+    consist = BoxTramConsist(
+        roster_id=roster_id,
+        id="colbiggan_box",
+        base_numeric_id=880,
+        name="Colbiggan",
+        gen=3,
+    )
+
+    consist.add_unit(base_platform=ElectricMotorTram4, repeat=2)
+
+    return consist

@@ -1,17 +1,19 @@
-from road_vehicle import RefrigeratedHauler, DieselRoadVehicle
+from road_vehicle import RefrigeratedTruckConsist
+from base_platforms.trucks import DieselConventionalCabSemiTractorTruckGen3A
 
-consist = RefrigeratedHauler(id='merrivale_refrigerated',
-                             base_numeric_id=300,
-                             name='Merrivale',
-                             semi_truck_so_redistribute_capacity=True,
-                             vehicle_life=40,
-                             intro_date=1949)
 
-consist.add_unit(type=DieselRoadVehicle,
-                 capacity=0,
-                 vehicle_length=2,
-                 semi_truck_shift_offset_jank=2,
-                 always_use_same_spriterow=True)
+def main(roster_id):
+    consist = RefrigeratedTruckConsist(
+        roster_id=roster_id,
+        id="merrivale_refrigerated",
+        base_numeric_id=300,
+        name="Merrivale",
+        gen=3,
+        intro_date_offset=10,
+    )  # introduce later than gen epoch by design
 
-consist.add_unit(capacity=30,
-                 vehicle_length=6)
+    consist.add_unit(base_platform=DieselConventionalCabSemiTractorTruckGen3A)
+
+    consist.add_unit(base_platform=None, vehicle_length=6)
+
+    return consist

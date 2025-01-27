@@ -10,13 +10,13 @@
 // -----------
 
 roadtypetable {
- 	ROAD, HAUL
- }
+ 	ROAD, HAUL, LOLZ, HEQS
+}
 
 // tram is light rail so copy existing railtype labels where appropriate (for ease, no new thinking required)
 // as per https://newgrf-specs.tt-wiki.net/wiki/RailtypeLabels
 tramtypetable {
- 	RAIL, ELRL
+ 	RAIL, ELRL, HAKE, LAKE,
  }
 
 
@@ -26,13 +26,34 @@ tramtypetable {
 item(FEAT_ROADTYPES, heavy_haul_road, 0) {
     property {
         name: string(STR_NAME_HEAVY_HAUL_ROAD);
-        label: "HAUL";
-        powered_roadtype_list: [];
+        label: "HEQS";
+        powered_roadtype_list: ["HAUL"];
         toolbar_caption: string(STR_TOOLBAR_CAPTION_HEAVY_HAUL_ROAD);
         menu_text: string(STR_MENU_TEXT_HEAVY_HAUL_ROAD);
         build_window_caption: string(STR_BUILD_WINDOW_CAPTION_HEAVY_HAUL_ROAD);
         autoreplace_text: string(STR_AUTOREPLACE_TEXT_HEAVY_HAUL_ROAD);
         new_engine_text: string(STR_NEW_ENGINE_TEXT_HEAVY_HAUL_ROAD);
+    }
+    graphics {
+        underlay: heavy_haul_underlay;
+        track_overlay: heavy_haul_track_overlay;
+        depots: heavy_haul_depots;
+        bridge_surfaces: heavy_haul_bridge_surfaces;
+        roadstops: heavy_haul_roadstops;
+    }
+}
+
+item(FEAT_ROADTYPES, cake_road, 1) {
+    property {
+        name: string(STR_NAME_HEAVY_HAUL_ROAD);
+        label: "LOLZ";
+        powered_roadtype_list: ["HEQS", "HAUL", "ROAD"];
+        toolbar_caption: string(STR_TOOLBAR_CAPTION_HEAVY_HAUL_ROAD);
+        menu_text: string(STR_MENU_TEXT_HEAVY_HAUL_ROAD);
+        build_window_caption: string(STR_BUILD_WINDOW_CAPTION_HEAVY_HAUL_ROAD);
+        autoreplace_text: string(STR_AUTOREPLACE_TEXT_HEAVY_HAUL_ROAD);
+        new_engine_text: string(STR_NEW_ENGINE_TEXT_HEAVY_HAUL_ROAD);
+        roadtype_flags: bitmask(ROADTYPE_FLAG_HIDDEN);
     }
     graphics {
         underlay: heavy_haul_underlay;
@@ -53,6 +74,7 @@ item(FEAT_TRAMTYPES, tramway, 0) {
         build_window_caption: string(STR_BUILD_WINDOW_CAPTION_TRAMWAY);
         autoreplace_text: string(STR_AUTOREPLACE_TEXT_TRAMWAY);
         new_engine_text: string(STR_NEW_ENGINE_TEXT_TRAMWAY);
+        sort_order: 0;
     }
 }
 
@@ -67,6 +89,7 @@ item(FEAT_TRAMTYPES, electric_tramway, 1) {
         autoreplace_text: string(STR_AUTOREPLACE_TEXT_ELECTRIC_TRAMWAY);
         new_engine_text: string(STR_NEW_ENGINE_TEXT_ELECTRIC_TRAMWAY);
         tramtype_flags: bitmask(TRAMTYPE_FLAG_CATENARY);
+        sort_order: 1;
     }
 }
 

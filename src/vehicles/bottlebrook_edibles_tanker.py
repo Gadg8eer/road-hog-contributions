@@ -1,14 +1,17 @@
-from road_vehicle import EdiblesTanker, ElectricRoadVehicle
+from road_vehicle import EdiblesTankerTramConsist
+from base_platforms.trams import ElectricMotorTram4
 
-consist = EdiblesTanker(id='bottlebrook_edibles_tanker',
-                        base_numeric_id=510,
-                        name='Bottlebrook',
-                        tram_type='ELRL',
-                        vehicle_life=40,
-                        intro_date=1946)
 
-consist.add_unit(type=ElectricRoadVehicle,
-                 capacity=36,
-                 vehicle_length=8,
-                 effects=['EFFECT_SPRITE_ELECTRIC, 0, 0, 10'],
-                 repeat=2)
+def main(roster_id):
+    consist = EdiblesTankerTramConsist(
+        roster_id=roster_id,
+        id="bottlebrook_edibles_tanker",
+        base_numeric_id=510,
+        name="Bottlebrook",
+        gen=3,
+        intro_date_offset=6,
+    )  # introduce later than gen epoch by design
+
+    consist.add_unit(base_platform=ElectricMotorTram4, repeat=2)
+
+    return consist
